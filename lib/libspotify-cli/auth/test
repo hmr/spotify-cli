@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -u
+
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+# Authorization Code Flow with Proof Key for Code Exchange (PKCE)
+
+# https://accounts.spotify.com/authorize?
+# response_type=code
+# client_id=77e602fc63fa4b96acff255ed33428d3
+# redirect_uri=http%3A%2F%2Flocalhost
+# scope=user-follow-modify
+# state=e21392da45dbf4
+# code_challenge=KADwyz1X~HIdcAG20lnXitK6k51xBP4pEMEZHmCneHD1JhrcHjE1P3yU_NjhBz4TdhV6acGo16PCd10xLwMJJ4uCutQZHw
+# code_challenge_method=S256
+
+
+URLBASE="https://accounts.spotify.com"
+API="authorize"
+
+CLIENT_ID="5dda0289718a42fe8411b26d2d376127"
+RESPONSE_TYPE=code
+REDIRECT_URI=""
+CODE_CHALLENGE_METHOD="S256"
+#CODE_CHALLENGE=$(date +%s%N | sha256sum | cut -d' ' -f1 | base64 -w 1024 | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g')
+CODE_CHALLENGE=$(dd bs=64 count=1 if=/dev/urandom 2>/dev/null | sha256sum | cut -d' ' -f1)
+STATE="a12345"
+SCOPE="user-follow-modify"
+
+curl $1 -G -d "client_id=${CLIENT_ID}" \
+  -d "response_type=${RESPONSE_TYPE}" \
+  -d "redirect_uri=${REDIRECT_URI}" \
+  -d "code_challenge_method=${CODE_CHALLENGE_METHOD}" \
+  -d "code_challenge=${CODE_CHALLENGE}" \
+  -d "state=${STATE}" \
+  -d "scope=${SCOPE}" \
+  "${URLBASE}/${API}"
