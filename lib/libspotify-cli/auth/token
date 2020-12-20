@@ -1,0 +1,54 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+set -eu
+
+# Part of Spotify-cli
+# Authorization Code Flow with Proof Key for Code Exchange (PKCE)
+# Exchange authorization code to access token.
+
+CONFDIR="../config"
+source ${CONFDIR}/basic_settings
+
+#URLBASE="http://localhost:8080"   # for debug with netcat
+URLBASE="https://accounts.spotify.com"
+API="api/token"
+
+GRANT_TYPE="authorization_code"
+CODE="$(<${CONFDIR}/authorization_code)"
+REDIRECT_URI="http://localhost:1234/callback_gen.php"
+CODE_VERIFIER="$(<${CONFDIR}/code_verifier)"
+
+# curl ${1:-} --silent --insecure --write-out '\n\n%{http_code}\n' \
+#   --header "${HEADER_ALWAYS}" \
+#   --data-urlencode "client_id=${CLIENT_ID}" \
+#   --data-urlencode "grant_type=${GRANT_TYPE}" \
+#   --data-urlencode "code=${CODE}" \
+#   --data-urlencode "redirect_uri=${REDIRECT_URI}" \
+#   --data-urlencode "code_verifier=${CODE_VERIFIER}" \
+#   "${URLBASE}/${API}"
+#
+# exit 16
+
+RESPONSE=$(curl ${1:-} --silent --insecure --write-out '\n\n%{http_code}\n' \
+  --write-out '\n%{http_code}' \
+  --header "${HEADER_ALWAYS}" \
+  --data-urlencode "client_id=${CLIENT_ID}" \
+  --data-urlencode "grant_type=${GRANT_TYPE}" \
+  --data-urlencode "code=${CODE}" \
+  --data-urlencode "redirect_uri=${REDIRECT_URI}" \
+  --data-urlencode "code_verifier=${CODE_VERIFIER}" \
+  "${URLBASE}/${API}"
+)
+
+HTTP_CODE=$(tail -n1 <<< "${RESPONSE}")
+RES_BODY=$(head -n-1 <<< "${RESPONSE}")
+
+ACCESS_TOKEN=$(echo ${RES_BODY} | jq -r '.access_token')
+REFRESH_TOKEN=$(echo ${RES_BODY} | jq -r '.refresh_token')
+
+echo -n "${ACCESS_TOKEN}"  > ${CONFDIR}/access_token
+echo -n "${REFRESH_TOKEN}" > ${CONFDIR}/refresh_token
+
+echo "Successfully authenticated."
+

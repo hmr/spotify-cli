@@ -1,0 +1,9 @@
+#!/bin/bash
+
+RES=$(./get-player)
+
+TITLE=$(echo "${RES}" | jq -c '.item | [.name, .artists[0].name]' | sed -e 's/\[//g' -e 's/\]//g' -e 's/\"//g' | cut -d, -f1)
+ARTIST=$(echo "${RES}" | jq -c '.item | [.name, .artists[0].name]' | sed -e 's/\[//g' -e 's/\]//g' -e 's/\"//g' | cut -d, -f2)
+
+echo "${TITLE}(${ARTIST})"
+

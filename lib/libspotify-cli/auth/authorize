@@ -1,0 +1,59 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+set -u
+
+# Part of Spotify-cli
+# Authorization Code Flow with Proof Key for Code Exchange (PKCE)
+
+CONFDIR="../config"
+source ${CONFDIR}/basic_settings
+
+URLBASE="https://accounts.spotify.com"
+API="authorize"
+
+RESPONSE_TYPE=code
+REDIRECT_URI="http://localhost:1234/callback_gen.php"
+SCOPE="${SCOPE_ALL}"
+CODE_CHALLENGE_METHOD="S256"
+CODE_VERIFIER=$(dd bs=64 count=1 if=/dev/urandom 2>/dev/null | base64 -w 1024 | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g')
+CODE_CHALLENGE=$(echo -n ${CODE_VERIFIER} | openssl sha256 -binary | base64 -w 1024 | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g')
+STATE=$(dd bs=64 count=1 if=/dev/urandom 2>/dev/null | sha256sum | cut -c-12)
+
+echo -n ${CODE_VERIFIER} > ${CONFDIR}/code_verifier
+echo -n ${CODE_CHALLENGE} > ${CONFDIR}/code_challenge
+echo -n ${STATE} > ${CONFDIR}/state
+
+# curl ${1:-} -s -k -G \
+#   -i \
+#   -H "${HEADER_ALWAYS}" \
+#   --data-urlencode "client_id=${CLIENT_ID}" \
+#   --data-urlencode "response_type=${RESPONSE_TYPE}" \
+#   --data-urlencode "redirect_uri=${REDIRECT_URI}" \
+#   --data-urlencode "code_challenge_method=${CODE_CHALLENGE_METHOD}" \
+#   --data-urlencode "code_challenge=${CODE_CHALLENGE}" \
+#   --data-urlencode "state=${STATE}" \
+#   --data-urlencode "scope=${SCOPE}" \
+#   "${URLBASE}/${API}"
+#
+# exit 16
+
+RESPONSE=$(curl ${1:-} -s -k -G -o /dev/null \
+  --write-out '%{http_code} %{size_header} %{redirect_url}' \
+  --header "${HEADER_ALWAYS}" \
+  --data-urlencode "client_id=${CLIENT_ID}" \
+  --data-urlencode "response_type=${RESPONSE_TYPE}" \
+  --data-urlencode "redirect_uri=${REDIRECT_URI}" \
+  --data-urlencode "code_challenge_method=${CODE_CHALLENGE_METHOD}" \
+  --data-urlencode "code_challenge=${CODE_CHALLENGE}" \
+  --data-urlencode "state=${STATE}" \
+  --data-urlencode "scope=${SCOPE}" \
+  "${URLBASE}/${API}"
+)
+
+#HEADERS=$(sed -n '1,/^\r$/p' <<< "${RESPONSE}")
+#CONTENT=$(sed -e '1,/^\r$/d' -e '$d' <<< "${RESPONSE}")
+
+read -r http_code size_header redirect_url <<< "${RESPONSE}"
+echo "${redirect_url}"
+

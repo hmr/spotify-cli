@@ -1,0 +1,26 @@
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+# Images
+# * ugc-image-upload
+# Listening History
+# * user-read-recently-played   * user-top-read   * user-read-playback-position
+# Spotify Connect
+# * user-read-playback-state    * user-modify-playback-state  * user-read-currently-playing
+# Playback
+# * app-remote-control (for iOS/Android SDK only) * streaming (for Web Playback SDK only)
+# Playlists
+# * playlist-modify-public      * playlist-modify-private
+# * playlist-read-private       * playlist-read-collaborative
+# Follow
+# * user-follow-modify          * user-follow-read
+# Library
+# * user-library-modify         * user-library-read
+# Users
+# * user-read-email             * user-read-private
+SCOPE_ALL="ugc-image-upload user-read-recently-played user-top-read user-read-playback-position user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-follow-modify user-follow-read user-library-modify user-library-read user-read-email user-read-private"
+SCOPE_PLAY="user-read-currently-playing user-read-playback-state user-modify-playback-state"
+SCOPE_PRIVATE="user-read-email user-read-private"
+
+HEADER_ALWAYS="Cache-Control: no-cache"
+CLIENT_ID="5dda0289718a42fe8411b26d2d376127"
+

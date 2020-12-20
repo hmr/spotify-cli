@@ -1,0 +1,33 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+set -eu
+
+# Part of Spotify-cli
+# Authorization Code Flow with Proof Key for Code Exchange (PKCE)
+# Exchange authorization code to access token.
+
+CONFDIR="../config"
+source ${CONFDIR}/basic_settings
+
+URLBASE="https://api.spotify.com/v1"
+API="me"
+
+ACCESS_TOKEN=$(cat ${CONFDIR}/access_token)
+HEADER_AUTH="Authorization: Bearer ${ACCESS_TOKEN}"
+
+# curl ${1:-} -s -k -G \
+#   -H "${HEADER_ALWAYS}" \
+#   -H "${HEADER_AUTH}" \
+#   "${URLBASE}/${API}"
+#
+# exit 16
+
+RESPONSE=$(curl ${1:-} -s -k -G \
+  -H "${HEADER_ALWAYS}" \
+  -H "${HEADER_AUTH}" \
+  "${URLBASE}/${API}"
+)
+
+echo -e ${RESPONSE}
+

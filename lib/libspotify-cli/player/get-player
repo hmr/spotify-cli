@@ -1,0 +1,36 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+set -eu
+
+# Part of Spotify-cli
+# Get Information About The User's Current Playback
+
+CONFDIR="../config"
+source ${CONFDIR}/basic_settings
+
+ACCESS_TOKEN=$(cat ${CONFDIR}/access_token)
+HEADER_AUTH="Authorization: Bearer ${ACCESS_TOKEN}"
+if [ -z "${ACCESS_TOKEN}" ]; then
+  echo "Please be authorized first."
+  exit 1
+fi
+
+URLBASE="https://api.spotify.com/v1"
+API="me/player"
+
+# curl ${1:-} -s -k -G \
+#   -H "${HEADER_ALWAYS}" \
+#   -H "${HEADER_AUTH}" \
+#   "${URLBASE}/${API}"
+#
+# exit 16
+
+RESPONSE=$(curl ${1:-} -s -k -G \
+  -H "${HEADER_ALWAYS}" \
+  -H "${HEADER_AUTH}" \
+  "${URLBASE}/${API}"
+)
+
+echo -e ${RESPONSE}
+
