@@ -10,8 +10,7 @@
 set -eu
 
 ##### Load libraries
-LIBSPDIR="/Users/hmr/src/spotify-cli/lib/libspotify-cli"
-source ${LIBSPDIR}/common/functions
+source ${LIBSPDIR}/common/user_functions
 
 # Option handling
 getoptions "$@"

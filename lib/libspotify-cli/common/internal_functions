@@ -1,0 +1,72 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+# Part of spotify-cli
+# internal_functions
+# Defines functions used by library internally
+# ORIGIN: 2020-12-29 by hmr
+
+set -eu
+
+# Already read?
+[ -n "${HAVE_INTERNAL_FUNCTIONS:-""}" ] && return
+
+#
+function get_epoch {
+  date "+%s"
+  return 0
+}
+
+# Global option handling
+function getoptions {
+  OPT_REMAIN=()
+  while [ $# -gt 0  ]; do
+    local opt=$1
+    case "${opt}" in
+      "-dd" | "--more-debug" )
+        OPT_DEBUG=1
+        OPT_MORE_DEBUG=1
+        ;;
+
+      "-d" | "--debug" )
+        OPT_DEBUG=1
+        ;;
+
+      * )
+        OPT_REMAIN+="${opt}"
+        ;;
+
+    esac
+    shift
+  done
+}
+
+# Debug line
+function dline {
+  [ -z ${OPT_DEBUG:=""} ] && return 0
+  dprintf "============================================================"
+  return
+}
+
+function dline2 {
+  [ -z ${OPT_DEBUG:=""} ] && return 0
+  dprintf "------------------------------------------------------------"
+  return
+}
+
+# Debug print
+function dprintf {
+  [ -z ${OPT_DEBUG:=""} ] && return 0
+  echo "$@" 1>&2
+  return
+}
+
+# Debug print 2
+function dprintf2 {
+  [ -z ${OPT_DEBUG} ] || [ -z ${OPT_MORE_DEBUG:=""} ] && return 0
+  dprintf "$@"
+  return
+}
+
+HAVE_INTERNAL_FUNCTIONS=1
+

@@ -1,0 +1,68 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+# Part of spotify-cli
+# internal_settings
+# ORIGIN: 2020-12-14 by hmr
+
+set -eu
+
+# Already read?
+[ -n "${HAVE_INTERNAL_SETTINGS:-""}" ] && return
+
+# Directories
+LIBSPDIR="${LIBSPDIR:=~/src/spotify-cli/lib/libspotify-cli}"
+
+ALBUMSDIR="${ALBUMSDIR:=${LIBSPDIR}/albims}"
+ARTISTSDIR="${ARTISTSDIR:=${LIBSPDIR}/artists}"
+AUTHDIR="${AUTHDIR:=${LIBSPDIR}/auth}"
+BROWSEDIR="${BROWSEDIR:=${LIBSPDIR}/browse}"
+COMMONDIR="${COMMONDIR:=${LIBSPDIR}/common}"
+CONFIGDIR="${CONFIGDIR:=${LIBSPDIR}/config}"
+EPISODESDIR="${EPISODESDIR:=${LIBSPDIR}/episodes}"
+FOLLOWDIR="${FOLLOWDIR:=${LIBSPDIR}/follow}"
+LIBRARYDIR="${LIBRARYDIR:=${LIBSPDIR}/library}"
+PERSONALIZATIONDIR="${PERSONALIZATIONDIR:=${LIBSPDIR}/personalization}"
+PLAYLISTSDIR="${PLAYLISTSDIR:=${LIBSPDIR}/playlists}"
+SEARCHDIR="${SEARCHDIR:=${LIBSPDIR}/search}"
+SHOWSDIR="${SHOWSDIR:=${LIBSPDIR}/shows}"
+TRACKSDIR="${TRACKSDIR:=${LIBSPDIR}/tracks}"
+USERSPROFILEDIR="${USERPROFILEDIR:=${LIBSPDIR}/userprofile}"
+PLAYERDIR="${PLAYERDIR:=${LIBSPDIR}/player}"
+
+# Status code
+S_TRUE='true'
+S_FALSE='false'
+
+# Return code/string
+R_PREFIX="libsc"
+R_SUCCESS="success"
+R_FAIL="fail"
+R_ARG="arg"
+R_UNAUTH="unauth"
+R_JSON="json"
+
+##### Scope [https://developer.spotify.com/documentation/general/guides/scopes/]
+# Images
+# * ugc-image-upload
+# Listening History
+# * user-read-recently-played   * user-top-read   * user-read-playback-position
+# Spotify Connect
+# * user-read-playback-state    * user-modify-playback-state  * user-read-currently-playing
+# Playback
+# * app-remote-control (for iOS/Android SDK only) * streaming (for Web Playback SDK only)
+# Playlists
+# * playlist-modify-public      * playlist-modify-private
+# * playlist-read-private       * playlist-read-collaborative
+# Follow
+# * user-follow-modify          * user-follow-read
+# Library
+# * user-library-modify         * user-library-read
+# Users
+# * user-read-email             * user-read-private
+SCOPE_ALL="ugc-image-upload user-read-recently-played user-top-read user-read-playback-position user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-follow-modify user-follow-read user-library-modify user-library-read user-read-email user-read-private"
+SCOPE_PLAY="user-read-currently-playing user-read-playback-state user-modify-playback-state"
+SCOPE_PRIVATE="user-read-email user-read-private"
+
+HAVE_INTERNAL_SETTINGS=1
+

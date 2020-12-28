@@ -7,6 +7,9 @@
 
 set -eu
 
+# Already read?
+[ -n "${HAVE_HTTP_STATUS:-""}" ] && return
+
 # Information
 HTTP_CONTINUE=100
 HTTP_SWITCHING_PROTOCOLS=101
@@ -153,4 +156,6 @@ function IS_HEADER_ONLY {
   [ $1 -eq "${HTTP_NO_CONTENT}" -o $1 -eq "${HTTP_NOT_MODIFIED}" ] && echo "true" && return
   echo "false"
 }
+
+HAVE_HTTP_STATUS=1
 

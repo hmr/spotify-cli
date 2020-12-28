@@ -4,3 +4,6 @@ code_challenge
 code_verifier
 refresh_token
 state
+token_epoch
+duration
+

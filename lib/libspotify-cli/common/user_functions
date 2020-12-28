@@ -13,7 +13,6 @@ _CURDIR="$(cd $(dirname $0) ; pwd)"
 LIBSPDIR=${LIBSPDIR:="${_CURDIR}/.."}     # (Caution) varies according to _CURDIR
 CONFDIR=${CONFIDR:="${LIBSPDIR}/config"}
 source ${CONFDIR}/basic_settings
-source ${COMMONDIR}/http_status
 
 # Refresh access token
 function try_refresh {

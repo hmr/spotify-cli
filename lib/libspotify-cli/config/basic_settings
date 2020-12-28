@@ -7,6 +7,9 @@
 
 set -eu
 
+# Already read?
+[ -n "${HAVE_BASIC_SETTINGS:-""}" ] && return
+
 ##### System dependent settings
 _SYSTEM=$(uname -s | tr "[A-Z]" "[a-z]")
 case "${_SYSTEM}" in
@@ -24,121 +27,15 @@ esac
 REDIRECT_PORT="${REDIRECT_PORT:=1234}"
 REDIRECT_URI="http://localhost:${REDIRECT_PORT}/callback_gen.php"
 
-# Directories
-LIBSPDIR="${LIBSPDIR:=~/src/spotify-cli/lib/libspotify-cli}"
-
-ALBUMSDIR="${ALBUMSDIR:=${LIBSPDIR}/albims}"
-ARTISTSDIR="${ARTISTSDIR:=${LIBSPDIR}/artists}"
-AUTHDIR="${AUTHDIR:=${LIBSPDIR}/auth}"
-BROWSEDIR="${BROWSEDIR:=${LIBSPDIR}/browse}"
-COMMONDIR="${COMMONDIR:=${LIBSPDIR}/common}"
-CONFIGDIR="${CONFIGDIR:=${LIBSPDIR}/config}"
-EPISODESDIR="${EPISODESDIR:=${LIBSPDIR}/episodes}"
-FOLLOWDIR="${FOLLOWDIR:=${LIBSPDIR}/follow}"
-LIBRARYDIR="${LIBRARYDIR:=${LIBSPDIR}/library}"
-PERSONALIZATIONDIR="${PERSONALIZATIONDIR:=${LIBSPDIR}/personalization}"
-PLAYLISTSDIR="${PLAYLISTSDIR:=${LIBSPDIR}/playlists}"
-SEARCHDIR="${SEARCHDIR:=${LIBSPDIR}/search}"
-SHOWSDIR="${SHOWSDIR:=${LIBSPDIR}/shows}"
-TRACKSDIR="${TRACKSDIR:=${LIBSPDIR}/tracks}"
-USERSPROFILEDIR="${USERPROFILEDIR:=${LIBSPDIR}/userprofile}"
-PLAYERDIR="${PLAYERDIR:=${LIBSPDIR}/player}"
-
 # Client ID: Don't change
 CLIENT_ID="5dda0289718a42fe8411b26d2d376127"
 
-# HTTP header
+# HTTP header to add always
 HEADER_ALWAYS="Cache-Control: no-cache"
 
-# Status code
-S_TRUE='true'
-S_FALSE='false'
+source "${LIBSPDIR}/common/internal_settings"
+source "${LIBSPDIR}/common/internal_functions"
+source "${LIBSPDIR}/common/http_status"
 
-# Return code/string
-R_PREFIX="libsc"
-R_SUCCESS="success"
-R_FAIL="fail"
-R_ARG="arg"
-R_UNAUTH="unauth"
-R_JSON="json"
-
-##### Scope [https://developer.spotify.com/documentation/general/guides/scopes/]
-# Images
-# * ugc-image-upload
-# Listening History
-# * user-read-recently-played   * user-top-read   * user-read-playback-position
-# Spotify Connect
-# * user-read-playback-state    * user-modify-playback-state  * user-read-currently-playing
-# Playback
-# * app-remote-control (for iOS/Android SDK only) * streaming (for Web Playback SDK only)
-# Playlists
-# * playlist-modify-public      * playlist-modify-private
-# * playlist-read-private       * playlist-read-collaborative
-# Follow
-# * user-follow-modify          * user-follow-read
-# Library
-# * user-library-modify         * user-library-read
-# Users
-# * user-read-email             * user-read-private
-SCOPE_ALL="ugc-image-upload user-read-recently-played user-top-read user-read-playback-position user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative user-follow-modify user-follow-read user-library-modify user-library-read user-read-email user-read-private"
-SCOPE_PLAY="user-read-currently-playing user-read-playback-state user-modify-playback-state"
-SCOPE_PRIVATE="user-read-email user-read-private"
-
-#
-function get_epoch {
-  date "+%s"
-  return 0
-}
-
-##### Below will be divided to independent file
-# Global option handling
-function getoptions {
-  OPT_REMAIN=()
-  while [ $# -gt 0  ]; do
-    local opt=$1
-    case "${opt}" in
-      "-dd" | "--more-debug" )
-        OPT_DEBUG=1
-        OPT_MORE_DEBUG=1
-        ;;
-
-      "-d" | "--debug" )
-        OPT_DEBUG=1
-        ;;
-
-      * )
-        OPT_REMAIN+="${opt}"
-        ;;
-
-    esac
-    shift
-  done
-}
-
-# Debug line
-function dline {
-  [ -z ${OPT_DEBUG:=""} ] && return 0
-  dprintf "============================================================"
-  return
-}
-
-function dline2 {
-  [ -z ${OPT_DEBUG:=""} ] && return 0
-  dprintf "------------------------------------------------------------"
-  return
-}
-
-# Debug print
-function dprintf {
-  [ -z ${OPT_DEBUG:=""} ] && return 0
-  echo "$@" 1>&2
-  return
-}
-
-# Debug print 2
-function dprintf2 {
-  [ -z ${OPT_DEBUG} ] || [ -z ${OPT_MORE_DEBUG:=""} ] && return 0
-  dprintf "$@"
-  return
-}
+HAVE_BASIC_SETTINGS=1
 
