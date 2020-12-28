@@ -5,7 +5,7 @@ set -eu
 
 # Part of Spotify-cli
 # Authorization Code Flow with Proof Key for Code Exchange (PKCE)
-# Exchange authorization code to access token.
+# Requesting a refreshed access token
 
 ##### Load libraries
 _CURDIR="$(cd $(dirname $0) ; pwd)"
@@ -20,17 +20,30 @@ URLBASE="https://accounts.spotify.com"
 API="api/token"
 
 ##### Processing body
-GRANT_TYPE="authorization_code"
-CODE="$(<${CONFDIR}/authorization_code)"
-CODE_VERIFIER="$(<${CONFDIR}/code_verifier)"
+GRANT_TYPE="refresh_token"
+REFRESH_TOKEN="$(<${CONFDIR}/refresh_token)"
+if [ -z "${REFRESH_TOKEN}"  ]; then
+  echo "${R_PREFIX}:${R_UNAUTH}:${HTTP_UNAUTHORIZED}" 1>&2
+  exit ${HTTP_UNAUTHORIZED}
+fi
+TOKEN_EPOCH="$(<${CONFDIR}/token_epoch)"
+if [ -z "${TOKEN_EPOCH}"  ]; then
+  echo "${R_PREFIX}:${R_UNAUTH}:${HTTP_UNAUTHORIZED}" 1>&2
+  exit ${HTTP_UNAUTHORIZED}
+fi
+
+CURRENT_EPOCH="$(get_epoch)"
+echo "Duration: $((${CURRENT_EPOCH} - ${TOKEN_EPOCH})) " > ${CONFDIR}/duration
+if [ $((${CURRENT_EPOCH} - ${TOKEN_EPOCH})) -le 3540 ]; then
+  echo "${R_PREFIX}:${R_SUCCESS}:${HTTP_OK}" 1>&2
+  exit 0
+fi
 
 # curl ${1:-} --silent --insecure --write-out '\n\n%{http_code}\n' \
 #   --header "${HEADER_ALWAYS}" \
 #   --data-urlencode "client_id=${CLIENT_ID}" \
 #   --data-urlencode "grant_type=${GRANT_TYPE}" \
-#   --data-urlencode "code=${CODE}" \
-#   --data-urlencode "redirect_uri=${REDIRECT_URI}" \
-#   --data-urlencode "code_verifier=${CODE_VERIFIER}" \
+#   --data-urlencode "refresh_token=${REFRESH_TOKEN}" \
 #   "${URLBASE}/${API}"
 #
 # exit 16
@@ -39,29 +52,18 @@ RESPONSE=$(curl ${1:-} --silent --insecure --write-out '\n\n%{http_code}\n' \
   --header "${HEADER_ALWAYS}" \
   --data-urlencode "client_id=${CLIENT_ID}" \
   --data-urlencode "grant_type=${GRANT_TYPE}" \
-  --data-urlencode "code=${CODE}" \
-  --data-urlencode "redirect_uri=${REDIRECT_URI}" \
-  --data-urlencode "code_verifier=${CODE_VERIFIER}" \
+  --data-urlencode "refresh_token=${REFRESH_TOKEN}" \
   "${URLBASE}/${API}"
 )
 
 HTTP_CODE=$(tail -n1 <<< "${RESPONSE}")
 RES_BODY=$(head -n-1 <<< "${RESPONSE}")
 
-# Stop server for callback
-until [ -z ${SERVER_PID:=$(lsof -t -i:${REDIRECT_PORT} || true)} ]
-do
-   kill ${SERVER_PID}
-   sleep 1
-   SERVER_PID=$(lsof -t -i:${REDIRECT_PORT} || true)
-done
-
-# HTTP Error check
+# Error check
 if [ "${HTTP_CODE}" -ne "${HTTP_OK}" ]; then
-  #echo "Something wrong!(HTTP Status Code: ${HTTP_CODE})"
-  echo "${R_PREFIX}:${R_FAIL}:${HTTP_CODE}"
+  echo "${R_PREFIX}:${R_FAIL}:${HTTP_CODE}" 1>&2
   exit ${HTTP_CODE}
-fi 1>&2
+fi
 
 # Output
 ACCESS_TOKEN=$(echo ${RES_BODY} | jq -r '.access_token')
@@ -69,9 +71,9 @@ REFRESH_TOKEN=$(echo ${RES_BODY} | jq -r '.refresh_token')
 
 # JSON error check
 if [ -z "${ACCESS_TOKEN}" -o -z "${REFRESH_TOKEN}" ]; then
-  echo "${R_PREFIX}:${R_JSON}:${HTTP_UNAUTHORIZED}"
+  echo "${R_PREFIX}:${R_JSON}:${HTTP_UNAUTHORIZED}" 1>&2
   exit ${HTTP_UNAUTHORIZED}
-fi 1>&2
+fi
 
 # Success
 echo $(get_epoch) > ${CONFDIR}/token_epoch
@@ -80,3 +82,4 @@ echo -n "${REFRESH_TOKEN}" > ${CONFDIR}/refresh_token
 
 echo "${R_PREFIX}:${R_SUCCESS}:${HTTP_CODE}" 1>&2
 exit 0
+

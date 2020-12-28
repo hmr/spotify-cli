@@ -1,5 +1,68 @@
+#!/bin/bash
 # vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
 
+# Part of spotify-cli
+# basic_settings
+# ORIGIN: 2020-12-14 by hmr
+
+set -eu
+
+##### System dependent settings
+_SYSTEM=$(uname -s | tr "[A-Z]" "[a-z]")
+case "${_SYSTEM}" in
+  "darwin" )
+    URL_OPENER="open"
+    ;;
+
+  "linux" )
+    URL_OPENER=""
+    ;;
+esac
+
+##### System independent settings
+# Authorization redirect URL
+REDIRECT_PORT="${REDIRECT_PORT:=1234}"
+REDIRECT_URI="http://localhost:${REDIRECT_PORT}/callback_gen.php"
+
+# Directories
+LIBSPDIR="${LIBSPDIR:=~/src/spotify-cli/lib/libspotify-cli}"
+
+ALBUMSDIR="${ALBUMSDIR:=${LIBSPDIR}/albims}"
+ARTISTSDIR="${ARTISTSDIR:=${LIBSPDIR}/artists}"
+AUTHDIR="${AUTHDIR:=${LIBSPDIR}/auth}"
+BROWSEDIR="${BROWSEDIR:=${LIBSPDIR}/browse}"
+COMMONDIR="${COMMONDIR:=${LIBSPDIR}/common}"
+CONFIGDIR="${CONFIGDIR:=${LIBSPDIR}/config}"
+EPISODESDIR="${EPISODESDIR:=${LIBSPDIR}/episodes}"
+FOLLOWDIR="${FOLLOWDIR:=${LIBSPDIR}/follow}"
+LIBRARYDIR="${LIBRARYDIR:=${LIBSPDIR}/library}"
+PERSONALIZATIONDIR="${PERSONALIZATIONDIR:=${LIBSPDIR}/personalization}"
+PLAYLISTSDIR="${PLAYLISTSDIR:=${LIBSPDIR}/playlists}"
+SEARCHDIR="${SEARCHDIR:=${LIBSPDIR}/search}"
+SHOWSDIR="${SHOWSDIR:=${LIBSPDIR}/shows}"
+TRACKSDIR="${TRACKSDIR:=${LIBSPDIR}/tracks}"
+USERSPROFILEDIR="${USERPROFILEDIR:=${LIBSPDIR}/userprofile}"
+PLAYERDIR="${PLAYERDIR:=${LIBSPDIR}/player}"
+
+# Client ID: Don't change
+CLIENT_ID="5dda0289718a42fe8411b26d2d376127"
+
+# HTTP header
+HEADER_ALWAYS="Cache-Control: no-cache"
+
+# Status code
+S_TRUE='true'
+S_FALSE='false'
+
+# Return code/string
+R_PREFIX="libsc"
+R_SUCCESS="success"
+R_FAIL="fail"
+R_ARG="arg"
+R_UNAUTH="unauth"
+R_JSON="json"
+
+##### Scope [https://developer.spotify.com/documentation/general/guides/scopes/]
 # Images
 # * ugc-image-upload
 # Listening History
@@ -21,6 +84,61 @@ SCOPE_ALL="ugc-image-upload user-read-recently-played user-top-read user-read-pl
 SCOPE_PLAY="user-read-currently-playing user-read-playback-state user-modify-playback-state"
 SCOPE_PRIVATE="user-read-email user-read-private"
 
-HEADER_ALWAYS="Cache-Control: no-cache"
-CLIENT_ID="5dda0289718a42fe8411b26d2d376127"
+#
+function get_epoch {
+  date "+%s"
+  return 0
+}
+
+##### Below will be divided to independent file
+# Global option handling
+function getoptions {
+  OPT_REMAIN=()
+  while [ $# -gt 0  ]; do
+    local opt=$1
+    case "${opt}" in
+      "-dd" | "--more-debug" )
+        OPT_DEBUG=1
+        OPT_MORE_DEBUG=1
+        ;;
+
+      "-d" | "--debug" )
+        OPT_DEBUG=1
+        ;;
+
+      * )
+        OPT_REMAIN+="${opt}"
+        ;;
+
+    esac
+    shift
+  done
+}
+
+# Debug line
+function dline {
+  [ -z ${OPT_DEBUG:=""} ] && return 0
+  dprintf "============================================================"
+  return
+}
+
+function dline2 {
+  [ -z ${OPT_DEBUG:=""} ] && return 0
+  dprintf "------------------------------------------------------------"
+  return
+}
+
+# Debug print
+function dprintf {
+  [ -z ${OPT_DEBUG:=""} ] && return 0
+  echo "$@" 1>&2
+  return
+}
+
+# Debug print 2
+function dprintf2 {
+  [ -z ${OPT_DEBUG} ] || [ -z ${OPT_MORE_DEBUG:=""} ] && return 0
+  dprintf "$@"
+  return
+}
 

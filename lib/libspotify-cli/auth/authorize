@@ -1,28 +1,52 @@
 #!/bin/bash
 # vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
 
-set -u
-
 # Part of Spotify-cli
 # Authorization Code Flow with Proof Key for Code Exchange (PKCE)
 
-CONFDIR="../config"
-source ${CONFDIR}/basic_settings
+set -eu
 
+##### Load libraries
+_CURDIR="$(cd $(dirname $0) ; pwd)"
+LIBSPDIR=${LIBSPDIR:="${_CURDIR}/.."}     # (Caution) varies according to _CURDIR
+CONFDIR=${CONFIDR:="${LIBSPDIR}/config"}
+source ${CONFDIR}/basic_settings
+source ${COMMONDIR}/http_status
+
+##### API
 URLBASE="https://accounts.spotify.com"
 API="authorize"
 
+##### Processing body
+function get_verifier {
+  dd bs=64 count=1 if=/dev/urandom 2>/dev/null \
+    | base64 -w 1024 \
+    | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g'
+}
+
+function get_challenge {
+  printf "${CODE_VERIFIER}" \
+    | openssl sha256 -binary \
+    | base64 -w 1024 \
+    | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g'
+}
+
+function get_state {
+  dd bs=64 count=1 if=/dev/urandom 2>/dev/null \
+    | sha256sum \
+    | cut -c-12
+}
+
 RESPONSE_TYPE=code
-REDIRECT_URI="http://localhost:1234/callback_gen.php"
 SCOPE="${SCOPE_ALL}"
 CODE_CHALLENGE_METHOD="S256"
-CODE_VERIFIER=$(dd bs=64 count=1 if=/dev/urandom 2>/dev/null | base64 -w 1024 | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g')
-CODE_CHALLENGE=$(echo -n ${CODE_VERIFIER} | openssl sha256 -binary | base64 -w 1024 | sed -e 's/+/-/g;' -e 's/\//_/g' -e 's/=//g')
-STATE=$(dd bs=64 count=1 if=/dev/urandom 2>/dev/null | sha256sum | cut -c-12)
+CODE_VERIFIER=$(get_verifier)
+CODE_CHALLENGE=$(get_challenge)
+STATE=$(get_state)
 
-echo -n ${CODE_VERIFIER} > ${CONFDIR}/code_verifier
-echo -n ${CODE_CHALLENGE} > ${CONFDIR}/code_challenge
-echo -n ${STATE} > ${CONFDIR}/state
+printf "${CODE_VERIFIER}" > ${CONFDIR}/code_verifier
+printf "${CODE_CHALLENGE}" > ${CONFDIR}/code_challenge
+printf "${STATE}" > ${CONFDIR}/state
 
 # curl ${1:-} -s -k -G \
 #   -i \
@@ -38,6 +62,13 @@ echo -n ${STATE} > ${CONFDIR}/state
 #
 # exit 16
 
+# Invoke webserver for callback
+while [ -z ${SERVER_PID:=$(lsof -t -i:${REDIRECT_PORT} || true)} ]
+do
+  ${AUTHDIR}/callback/php/invoke_server.sh ${REDIRECT_PORT} "${AUTHDIR}/callback/php" &> /dev/null
+  sleep 2
+done
+
 RESPONSE=$(curl ${1:-} -s -k -G -o /dev/null \
   --write-out '%{http_code} %{size_header} %{redirect_url}' \
   --header "${HEADER_ALWAYS}" \
@@ -51,9 +82,22 @@ RESPONSE=$(curl ${1:-} -s -k -G -o /dev/null \
   "${URLBASE}/${API}"
 )
 
-#HEADERS=$(sed -n '1,/^\r$/p' <<< "${RESPONSE}")
-#CONTENT=$(sed -e '1,/^\r$/d' -e '$d' <<< "${RESPONSE}")
+read -r HTTP_CODE SIZE_HEADER REDIRECT_URL <<< "${RESPONSE}"
 
-read -r http_code size_header redirect_url <<< "${RESPONSE}"
-echo "${redirect_url}"
+# Error check
+if [ $(IS_HTTP_REDIRECT "${HTTP_CODE}") = "${S_FALSE}" ]; then
+  #echo "Something wrong!(HTTP Status Code: ${HTTP_CODE})"
+  echo "${R_PREFIX}:${R_FAIL}:${HTTP_CODE}"
+  exit ${HTTP_CODE}
+fi 1>&2
+
+# Normal output
+if [ -z "${URL_OPENER}" ]; then
+  echo "${REDIRECT_URL}"
+else
+  ${URL_OPENER} ${REDIRECT_URL}
+fi
+
+echo "${R_PREFIX}:${R_SUCCESS}:${HTTP_CODE}" 1>&2
+exit 0
 

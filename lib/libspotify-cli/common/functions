@@ -1,0 +1,206 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+#Part of Spotify-cli
+
+# Common functions
+# ORIGIN: 2020-12-21 by hmr
+
+set -eu
+
+##### Load libraries
+_CURDIR="$(cd $(dirname $0) ; pwd)"
+LIBSPDIR=${LIBSPDIR:="${_CURDIR}/.."}     # (Caution) varies according to _CURDIR
+CONFDIR=${CONFIDR:="${LIBSPDIR}/config"}
+source ${CONFDIR}/basic_settings
+source ${COMMONDIR}/http_status
+
+# Refresh access token
+function try_refresh {
+  dline2
+  dprintf "Entering try_refresh()..."
+  local pfx rcd hcd
+  IFS=":" read pfx rcd hcd <<< "$(${AUTHDIR}/refresh 2>&1)"
+  dprintf $(printf "pfx=%s\nrcd=%s\nhcd=%s\n" "$pfx" "$rcd" "$hcd")
+  [ "${rcd}" != "${R_SUCCESS}" ] && return 1
+  return 0
+}
+
+# Try to get authorization code
+function try_authorize {
+  dline2
+  dprintf "Entering try_authorize()..."
+  local pfx rcd hcd
+  IFS=: read pfx rcd hcd <<< "$(${AUTHDIR}/authorize 2>&1)"
+  [ "${rcd}" != "${R_SUCCESS}" ] && return 1
+  return 0
+}
+
+# Try to exchange authorization code to access token
+function try_token {
+  dline2
+  dprintf "Entering try_token()..."
+  local pfx rcd hcd
+  IFS=: read pfx rcd hcd <<< "$(${AUTHDIR}/token 2>&1)"
+  [ "${rcd}" != "${R_SUCCESS}" ] && return 1
+  return 0
+}
+
+# Get current playing player information
+function get_player {
+  dline2
+  dprintf "Entering get_player()..."
+  local res="$(${PLAYERDIR}/get-player)"
+  local res_body=$(head -n-1 <<< "${res}")
+  local http_code=$(tail -n1 <<< "${res}")
+  dprintf "http_code:${http_code}"
+  dprintf2 "res_body:${res_body}"
+
+  # Error handling
+  case "${http_code}" in
+    "${HTTP_NO_CONTENT}" )
+      dprintf "http no content!"
+      echo '{"key":"the player is stopped"}'
+      echo "${HTTP_NO_CONTENT}"
+      return
+      ;;
+
+    * )
+      echo "${res_body}"
+      echo "${http_code}"
+      return
+      ;;
+  esac
+}
+
+# Skip to next track
+function post-next {
+  dline2
+  dprintf "Entering post-next()..."
+  [ $# -le 0  ] && (echo "not enough args"; return 1)
+
+  local device_id=$1
+  local res="$(${PLAYERDIR}/post-next ${device_id})"
+  local res_body=$(head -n-1 <<< "${res}")
+  local http_code=$(tail -n1 <<< "${res}")
+  dprintf "http_code:${http_code}"
+  dprintf "res_body:${res_body}"
+
+  # Error handling
+  case "${http_code}" in
+    "${HTTP_NO_CONTENT}" )
+      dprintf "http no content!"
+      echo '{"status":"http_no_content"}'
+      echo "${HTTP_NO_CONTENT}"
+      return
+      ;;
+
+    * )
+      echo "${res_body}"
+      echo "${http_code}"
+      return
+      ;;
+  esac
+}
+
+# Skip to previous track
+function post-previous {
+  dline2
+  dprintf "Entering post-previous()..."
+  [ $# -le 0  ] && (echo "not enough args"; return 1)
+
+  local device_id=$1
+  local res="$(${PLAYERDIR}/post-previous ${device_id})"
+  local res_body=$(head -n-1 <<< "${res}")
+  local http_code=$(tail -n1 <<< "${res}")
+  dprintf "http_code:${http_code}"
+  dprintf "res_body:${res_body}"
+
+  # Error handling
+  case "${http_code}" in
+    "${HTTP_NO_CONTENT}" )
+      dprintf "http no content!"
+      echo '{"status":"http_no_content"}'
+      echo "${HTTP_NO_CONTENT}"
+      return
+      ;;
+
+    * )
+      echo "${res_body}"
+      echo "${http_code}"
+      return
+      ;;
+  esac
+}
+
+# Pause music
+function put-pause {
+  dline2
+  dprintf "Entering put-pause()..."
+  [ $# -le 0  ] && (echo "not enough args"; return 1)
+
+  local device_id=$1
+  local res="$(${PLAYERDIR}/put-pause ${device_id})"
+  local res_body=$(head -n-1 <<< "${res}")
+  local http_code=$(tail -n1 <<< "${res}")
+  dprintf "http_code:${http_code}"
+  dprintf "res_body:${res_body}"
+
+  # Error handling
+  case "${http_code}" in
+    "${HTTP_NO_CONTENT}" )
+      echo '{"status":"http_no_content"}'
+      echo "${HTTP_NO_CONTENT}"
+      return
+      ;;
+
+    "${HTTP_FORBIDDEN}" )
+      echo '{"status":"http_prohibited", "reason":"already started"}'
+      echo "${HTTP_FORBIDDEN}"
+      return
+      ;;
+
+
+    * )
+      echo "${res_body}"
+      echo "${http_code}"
+      return
+      ;;
+  esac
+}
+
+# Play music
+function put-play {
+  dline2
+  dprintf "Entering put-play()..."
+  [ $# -le 0  ] && (echo "not enough args"; return 1)
+
+  local device_id=$1
+  local res="$(${PLAYERDIR}/put-play ${device_id})"
+  local res_body=$(head -n-1 <<< "${res}")
+  local http_code=$(tail -n1 <<< "${res}")
+  dprintf "http_code:${http_code}"
+  dprintf "res_body:${res_body}"
+
+  # Error handling
+  case "${http_code}" in
+    "${HTTP_NO_CONTENT}" )
+      echo '{"status":"http_no_content"}'
+      echo "${HTTP_NO_CONTENT}"
+      return
+      ;;
+
+    "${HTTP_FORBIDDEN}" )
+      echo '{"status":"http_prohibited", "reason":"already started"}'
+      echo "${HTTP_FORBIDDEN}"
+      return
+      ;;
+
+
+    * )
+      echo "${res_body}"
+      echo "${http_code}"
+      return
+      ;;
+  esac
+}

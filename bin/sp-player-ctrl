@@ -1,0 +1,112 @@
+#!/bin/bash
+# vim: ft=bash ts=2 sw=2 et ff=unix fenc=utf-8
+
+#Part of Spotify-cli
+
+# sp-player-ctrl
+# Small tool to control spotify player
+# ORIGIN: 2020-12-28 by hmr
+
+set -eu
+
+##### Load libraries
+LIBSPDIR="/Users/hmr/src/spotify-cli/lib/libspotify-cli"
+source ${LIBSPDIR}/common/functions
+
+# Option handling
+getoptions "$@"
+dline
+dprintf "Execting $0"
+dprintf "Debug print enabled."
+
+# Local option handling
+for opt in "${OPT_REMAIN[@]:-""}"; do
+  case "${opt}" in
+    skip | ff )
+      OP="skip"
+      ;;
+
+    prev | rw )
+      OP="prev"
+      ;;
+
+    pause | stop )
+      OP="pause"
+      ;;
+
+    play | resume )
+      OP="play"
+      ;;
+
+    * )
+      ;;
+
+  esac
+done
+
+if [ -z ${OP:-""} ]; then
+  echo "Usage: $0 skip | prev | pause | play"
+  exit 0
+fi
+
+# Refresh token
+try_refresh || exit 145
+
+# get device id
+RES="$(get_player)"
+RES_BODY=$(head -n-1 <<< "${RES}")
+HTTP_CODE=$(tail -n1 <<< "${RES}")
+
+case "${HTTP_CODE}" in
+    "${HTTP_OK}" )
+      DEV_ID=$(echo "${RES_BODY}" | jq -cr '.device.id')
+      ;;
+
+    * )
+      echo "error"
+      ;;
+esac
+
+case "${OP}" in
+  skip )
+    # skip to next track
+    RES="$(post-next ${DEV_ID})"
+    ;;
+
+  prev )
+    # skip to next track
+    RES="$(post-previous ${DEV_ID})"
+    ;;
+
+  pause )
+    # skip to next track
+    RES="$(put-pause ${DEV_ID})"
+    ;;
+
+  play )
+    # play
+    RES="$(put-play ${DEV_ID})"
+    ;;
+
+esac
+dline2
+dprintf "RES=${RES}"
+RES_BODY=$(head -n-1 <<< "${RES}")
+HTTP_CODE=$(tail -n1 <<< "${RES}")
+dprintf "HTTP_CODE=${HTTP_CODE}"
+dprintf "RES_BODY=${RES_BODY}"
+
+case "${HTTP_CODE}" in
+  "${HTTP_NO_CONTENT}" )
+    exit 0
+    ;;
+
+  "${HTTP_FORBIDDEN}" )
+    exit 0
+    ;;
+
+  * )
+    echo "error"
+    ;;
+esac
+

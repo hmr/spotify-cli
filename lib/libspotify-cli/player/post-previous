@@ -4,7 +4,7 @@
 set -eu
 
 # Part of Spotify-cli
-# Get Information About The User's Current Playback
+# Skip to prevopis track
 
 ##### Load libraries
 _CURDIR="$(cd $(dirname $0) ; pwd)"
@@ -15,7 +15,7 @@ source ${COMMONDIR}/http_status
 
 ##### API
 URLBASE="https://api.spotify.com/v1"
-API="me/player"
+API="me/player/previous"
 
 ##### Processing body
 ACCESS_TOKEN=$(cat ${CONFDIR}/access_token)
@@ -33,14 +33,20 @@ HEADER_AUTH="Authorization: Bearer ${ACCESS_TOKEN}"
 #
 # exit 16
 
+[ $# -le 0  ] && (echo "not enough args"; return 1)
+DEVICE_ID=$1
+
 RESPONSE=$(curl ${1:-} \
   --silent --insecure --write-out '\n\n%{http_code}\n' \
   --header "${HEADER_ALWAYS}" \
   --header "${HEADER_AUTH}" \
+  --data "device_id=${DEVICE_ID}" \
   "${URLBASE}/${API}"
 )
 HTTP_CODE=$(tail -n1 <<< "${RESPONSE}")
 RES_BODY=$(head -n-1 <<< "${RESPONSE}")
+dprintf "RES_BODY+${RES_BODY}"
+dprintf "HTTP_CODE=${HTTP_CODE}"
 
 ### Error check
 case "${HTTP_CODE}" in
@@ -48,7 +54,7 @@ case "${HTTP_CODE}" in
   "${HTTP_UNAUTHORIZED}" )
     echo "${RES_BODY}"
     echo "${HTTP_CODE}"
-    exit 1
+    exit 0
     ;;
   "4*" )
     ;;
